@@ -1,0 +1,53 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ namespace }} — WIKORUJA{% endblock %}
+{% block content %}
+<section class="ns-hero">
+  <div class="ns-title">
+    <h1>Namespace: {{ namespace }}</h1>
+    <div class="muted">
+      {% set total = pages|length if pages is defined else 0 %}
+      {{ total }} página{{ '' if total==1 else 's' }}
+    </div>
+  </div>
+
+  <div class="ns-toolbar" data-ns="{{ namespace }}">
+    <input id="ns-q" class="input" type="search" placeholder="Filtrar páginas neste namespace…" autocomplete="off" />
+    <div class="toolbar-right">
+      <label class="select-wrap">
+        <select id="ns-sort" class="select">
+          <option value="updated_desc">Mais recentes</option>
+          <option value="title_asc">Título (A→Z)</option>
+          <option value="title_desc">Título (Z→A)</option>
+        </select>
+      </label>
+      {% if 'pages.create_page' in globals() %}
+      <a class="btn" href="{{ url_for('pages.create_page', namespace=namespace) }}">Nova página</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="ns-grid" id="ns-grid">
+  {% for p in pages %}
+    {% set href = url_for('pages.view_page', namespace=p.namespace, slug=p.slug) %}
+    {% set updated = (p.updated_at or p.created_at) %}
+    {% set stamp = updated.strftime('%d/%m/%Y %H:%M') if updated else '' %}
+    {% set preview = (p.content or '')[:220] %}
+    <a class="ns-card" href="{{ href }}"
+       data-title="{{ p.title|lower }}"
+       data-class="{{ (p.classification or '')|lower }}"
+       data-updated="{{ updated.isoformat() if updated else '' }}">
+      <div class="ns-card-head">
+        <span class="chip {{ (p.classification or 'PUBLICO')|lower }}">{{ p.classification or 'PUBLICO' }}</span>
+        {% if stamp %}<span class="stamp">{{ stamp }}</span>{% endif %}
+      </div>
+      <h3 class="ns-card-title">{{ p.title }}</h3>
+      {% if preview %}
+        <p class="ns-card-preview">{{ preview }}{% if (p.content or '')|length > 220 %}…{% endif %}</p>
+      {% endif %}
+    </a>
+  {% else %}
+    <div class="empty">Nenhuma página aqui ainda.</div>
+  {% endfor %}
+</section>
+{% endblock %}

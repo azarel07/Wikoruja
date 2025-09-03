@@ -1,0 +1,7 @@
+﻿{% extends 'base.html' %}
+{% block title %}Diff revisões{% endblock %}
+{% block content %}
+<h2>Diff</h2>
+<pre class="diff">{% for line in diff_lines %}{{ line }}
+{% endfor %}</pre>
+{% endblock %}

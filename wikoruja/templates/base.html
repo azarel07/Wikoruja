@@ -1,0 +1,62 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}WIKORUJA{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+<body>
+  <!-- Appbar -->
+  <header class="appbar">
+    <div class="container" style="display:flex;align-items:center;gap:14px;justify-content:space-between">
+      <a href="/" class="brand" aria-label="Início">
+        <img class="logo brand wikoruja" src="{{ url_for('static', filename='img/wikoruja_logo.png') }}" alt="Wikoruja">
+        <div class="brand-text">
+          <div class="brand-title">WIKORUJA</div>
+          <div class="brand-sub">Centro de Instrução de Guerra Eletrônica</div>
+        </div>
+      </a>
+      <div class="right" style="display:flex;align-items:center;gap:10px">
+        <button class="btn ghost" type="button"
+                onclick="document.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true}))">
+          Ctrl+K Buscar
+        </button>
+        {% if current_user.is_authenticated %}
+          <a class="btn" href="{{ url_for('auth.logout') }}">Sair</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('auth.login') }}">Entrar</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    {% if page is defined %}
+    <nav class="breadcrumbs" aria-label="breadcrumb" style="margin-top:12px">
+      <a href="/">Home</a><span>›</span>
+      <a href="{{ url_for('pages.list_namespace', namespace=page.namespace) }}">{{ page.namespace }}</a><span>›</span>
+      <span class="current">{{ page.title }}</span>
+    </nav>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">WIKORUJA · CIGE</div>
+  </footer>
+
+  <!-- Spotlight (Ctrl+K) -->
+  <div id="spotlight" aria-hidden="true">
+    <div class="sp-box" role="dialog" aria-label="Busca rápida">
+      <input id="sp-input" class="sp-input" type="search" placeholder="Buscar páginas…  (Ctrl+K)" autocomplete="off">
+      <div id="sp-list" class="sp-list" role="listbox"></div>
+    </div>
+  </div>
+</body>
+</html>
+
+

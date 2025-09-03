@@ -1,0 +1,59 @@
+﻿{% extends 'base.html' %}
+{% block title %}{{ page.title }} — WIKORUJA{% endblock %}
+{% block content %}
+
+<div class="actionbar">
+  <div>
+    <span class="class-banner {{ page.classification|lower }}">{{ page.classification }}</span>
+    <span class="page-meta">
+      {% if page.updated_at %}Atualizado {{ page.updated_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+    </span>
+  </div>
+  <div class="right">
+    <a class="btn" href="{{ url_for('pages.edit_page', namespace=page.namespace, slug=page.slug) }}">Editar</a>
+    <button class="btn ghost" data-action="copy-link">Copiar link</button>
+  </div>
+</div>
+
+<div class="view-layout">
+  <article class="doc">
+    <h1>{{ page.title }}</h1>
+    <div class="markdown-body">
+      {% if html is defined %}{{ html|safe }}
+      {% elif content is defined %}{{ content|safe }}
+      {% elif page_html is defined %}{{ page_html|safe }}
+      {% elif page is defined %}{{ render_markdown(page.content)|safe }}
+      {% endif %}
+    </div>
+  </article>
+
+  <aside class="sidebar">
+    <div class="side-card">
+      <h3>Sumário</h3>
+      <nav id="toc"></nav>
+    </div>
+
+    <div class="side-card">
+      <h3>Anexos</h3>
+      {% if attachments %}
+        <ul class="attachments side">
+          {% for fn in attachments %}
+          <li>
+            {% if is_image(fn) %}
+              <a href="{{ url_for('pages.serve_media', namespace=page.namespace, slug=page.slug, filename=fn) }}" target="_blank">
+                <img src="{{ url_for('pages.serve_media', namespace=page.namespace, slug=page.slug, filename=fn) }}" alt="{{ fn }}">
+              </a>
+            {% else %}
+              <a href="{{ url_for('pages.serve_media', namespace=page.namespace, slug=page.slug, filename=fn) }}" target="_blank">{{ fn }}</a>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">Nenhum anexo.</p>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

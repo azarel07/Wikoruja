@@ -1,0 +1,14 @@
+﻿import re, markdown, bleach
+ALLOWED_TAGS = bleach.sanitizer.ALLOWED_TAGS.union({"p","pre","h1","h2","h3","h4","h5","h6","table","thead","tbody","tr","th","td","code","blockquote","img","figure","figcaption"})
+ALLOWED_ATTRS = {"*":["class","id"], "a":["href","title"], "img":["src","alt","title"]}
+
+def slugify(text:str)->str:
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
+    text = re.sub(r"[\s-]+", "-", text).strip("-")
+    return text or "pagina"
+
+def render_markdown(md:str)->str:
+    html = markdown.markdown(md, extensions=["extra","toc","admonition","tables","fenced_code"])
+    html = bleach.clean(html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS)
+    return html

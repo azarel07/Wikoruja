@@ -1,0 +1,31 @@
+﻿{% extends 'base.html' %}
+{% block title %}WIKORUJA — Home<div class="home-tagline"><em>Alma mater da Guerra Eletrônica, berço da Guerra Cibernética.</em></div>
+{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>WIKORUJA</h1>
+  <p>CENTRO DE INSTRUÇÃO DE GUERRA ELETRÔNICA</p>
+</section>
+
+<section class="cards">
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='doutrina') }}"><span class="letter">D</span><p>Doutrina</p></a>
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='organizacao') }}"><span class="letter">O</span><p>Organização</p></a>
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='adestramento') }}"><span class="letter">A</span><p>Adestramento</p></a>
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='material') }}"><span class="letter">M</span><p>Material</p></a>
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='educacao') }}"><span class="letter">E</span><p>Educação</p></a>
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='pessoal') }}"><span class="letter">P</span><p>Pessoal</p></a>
+  <a class="card" href="{{ url_for('pages.list_namespace', namespace='infraestrutura') }}"><span class="letter">I</span><p>Infraestrutura</p></a>
+</section>
+
+{% if current_user.is_authenticated %}
+<form class="newbox" method="post" action="{{ url_for('pages.new_page') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input name="title" placeholder="Título da nova página">
+  <input name="namespace" placeholder="Namespace (ex.: doutrina)">
+  <button type="submit">Criar & Editar</button>
+</form>
+{% endif %}
+<div class="home-tagline"><em>Alma mater da Guerra Eletrônica, berço da Guerra Cibernética.</em></div>
+{% endblock %}
+
+

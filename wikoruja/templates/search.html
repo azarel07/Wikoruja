@@ -1,0 +1,17 @@
+﻿{% extends 'base.html' %}
+{% block title %}Busca{% endblock %}
+{% block content %}
+<h2>Busca</h2>
+<form action="{{ url_for('pages.search') }}">
+  <input name="q" placeholder="Termo" value="{{ q }}">
+  <button class="btn" type="submit">Buscar</button>
+</form>
+<ul class="list">
+  {% for p in pages %}
+    <li><a href="{{ url_for('pages.view_page', namespace=p.namespace, slug=p.slug) }}">{{ p.title }}</a>
+    <small class="muted">{{ p.namespace }}/{{ p.slug }}</small></li>
+  {% else %}
+    {% if q %}<li class="muted">Nada encontrado.</li>{% endif %}
+  {% endfor %}
+</ul>
+{% endblock %}

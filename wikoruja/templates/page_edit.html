@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Editar: {{ page.title }} — WIKORUJA{% endblock %}
+{% block content %}
+<h1>Editar página (modo visual)</h1>
+<form id="edit-form" method="post" data-namespace="{{ page.namespace }}" data-slug="{{ page.slug }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid" style="display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px">
+    <aside class="form-side">
+      <label>Título
+        <input name="title" value="{{ page.title }}" required>
+      </label>
+      <label>Classificação
+        <select name="classification">
+          {% for c in ["PUBLICO","RESTRITO","CONFIDENCIAL"] %}
+          <option value="{{ c }}" {% if page.classification==c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Resumo do card
+        <textarea name="summary" rows="4">{{ page.summary or '' }}</textarea>
+        <small class="muted">Texto de até 220 caracteres. Aparece nos cards da listagem.</small>
+      </label>
+      <div class="cover-uploader">
+        <label><strong>Imagem do card (capa)</strong></label>
+        <input type="file" id="cover-file" accept="image/*">
+        <small class="muted">Será redimensionada e comprimida automaticamente (WebP).</small>
+        <div id="cover-preview" style="margin-top:10px;{% if not page.image_url %}display:none{% endif %}">
+          <img src="{{ page.image_url or '' }}" alt="Prévia" style="max-width:100%;border-radius:10px;border:1px solid var(--border)">
+        </div>
+        <input type="hidden" name="image_url" value="{{ page.image_url or '' }}">
+      </div>
+    </aside>
+    <section>
+      <div id="tui-editor"></div>
+      <input type="hidden" id="content-field" name="content" value="{{ page.content }}">
+      <div class="actions" style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+        <button class="btn" type="submit">Salvar</button>
+        <a class="btn" href="{{ url_for('pages.view_page', namespace=page.namespace, slug=page.slug) }}">Cancelar</a>
+      </div>
+    </section>
+  </div>
+</form>
+
+{% if page.id %}
+  <div class="actions" style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+    <form method="post"
+          action="{{ url_for('pages.delete_page', namespace=page.namespace, slug=page.slug) }}"
+          onsubmit="return confirm('Tem certeza que deseja excluir esta publicação? Esta ação é irreversível.');"
+          style="margin-left:auto">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn danger" type="submit">Excluir publicação</button>
+    </form>
+  </div>
+{% endif %}

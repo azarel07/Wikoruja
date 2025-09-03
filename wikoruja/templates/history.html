@@ -1,0 +1,22 @@
+﻿{% extends 'base.html' %}
+{% block title %}Histórico — {{ page.title }}{% endblock %}
+{% block content %}
+<h2>Histórico: {{ page.title }}</h2>
+<table class="table">
+  <tr><th>Rev</th><th>Autor</th><th>Data</th><th>Diff</th></tr>
+  {% for r in revs %}
+  <tr>
+    <td>#{{ r.id }}</td>
+    <td>{{ r.author }}</td>
+    <td>{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    <td>
+      {% if not loop.last %}
+      <a href="{{ url_for('pages.diff', older_id=revs[loop.index].id, newer_id=r.id) }}">comparar</a>
+      {% else %}
+      —
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

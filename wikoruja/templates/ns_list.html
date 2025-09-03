@@ -1,0 +1,72 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ namespace|capitalize }} — WIKORUJA{% endblock %}
+
+{% block content %}
+{% set ns_key = (namespace or "")|lower %}
+{% set thumbs = {
+  "doutrina": "/static/img/home/home_doutrina.webp",
+  "organizacao": "/static/img/home/home_organizacao.webp",
+  "adestramento": "/static/img/home/home_adestramento.webp",
+  "material": "/static/img/home/home_material.webp",
+  "educacao": "/static/img/home/home_educacao.webp",
+  "pessoal": "/static/img/home/home_pessoal.webp",
+  "infraestrutura": "/static/img/home/home_infraestrutura.webp"
+} %}
+{% set ns_img = thumbs.get(ns_key, "/static/img/home/home_doutrina.webp") %}
+
+<section class="ns-hero">
+  <div class="ns-title">
+    <h1>{{ namespace|capitalize }}</h1>
+    <div class="muted">
+      {% set total = pages|length if pages is defined else 0 %}
+      {{ total }} página{{ '' if total==1 else 's' }}
+    </div>
+  </div>
+
+  <div class="ns-toolbar" data-ns="{{ namespace }}">
+    <div class="toolbar-left">
+      <a class="btn ghost" href="/">← Início</a>
+      <a class="btn" href="{{ url_for('pages.create_page', namespace=namespace) }}">+ Nova página</a>
+    </div>
+    <div class="toolbar-right">
+      <input id="ns-q" class="input" type="search" placeholder="Filtrar páginas neste namespace…" autocomplete="off" />
+      <label class="select-wrap">
+        <select id="ns-sort" class="select">
+          <option value="updated_desc">Mais recentes</option>
+          <option value="title_asc">Título (A→Z)</option>
+          <option value="title_desc">Título (Z→A)</option>
+        </select>
+      </label>
+    </div>
+  </div>
+</section>
+
+<section class="ns-grid" id="ns-grid">
+  {% for p in pages %}
+    {% set href = url_for('pages.view_page', namespace=p.namespace, slug=p.slug) %}
+    {% set updated = (p.updated_at or p.created_at) %}
+    {% set stamp = updated.strftime('%d/%m/%Y %H:%M') if updated else '' %}
+    {% set cover = p.image_url or ns_img %}
+
+    <a class="ns-card" href="{{ href }}"
+       data-title="{{ p.title|lower }}"
+       data-class="{{ (p.classification or '')|lower }}"
+       data-updated="{{ updated.isoformat() if updated else '' }}">
+      <div class="thumb" style="background-image:
+        linear-gradient(180deg, rgba(0,0,0,.00), rgba(0,0,0,.35)),
+        url('{{ cover }}');"></div>
+
+      <div class="ns-card-head">
+        <span class="chip {{ (p.classification or 'PUBLICO')|lower }}">{{ p.classification or 'PUBLICO' }}</span>
+        {% if stamp %}<span class="stamp">{{ stamp }}</span>{% endif %}
+      </div>
+      <h3 class="ns-card-title">{{ p.title }}</h3>
+      {% if p.summary %}
+        <p class="ns-card-preview">{{ p.summary }}</p>
+      {% endif %}
+    </a>
+  {% else %}
+    <div class="empty">Nenhuma página aqui ainda.</div>
+  {% endfor %}
+</section>
+{% endblock %}
