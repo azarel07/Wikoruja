@@ -1,54 +1,237 @@
 {% extends 'base.html' %}
-{% block title %}Editar: {{ page.title }} — WIKORUJA{% endblock %}
+{% block title %}Editar: {{ page.title or 'Nova página' }} — WIKORUJA{% endblock %}
 {% block content %}
-<h1>Editar página (modo visual)</h1>
-<form id="edit-form" method="post" data-namespace="{{ page.namespace }}" data-slug="{{ page.slug }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="form-grid" style="display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px">
-    <aside class="form-side">
-      <label>Título
-        <input name="title" value="{{ page.title }}" required>
-      </label>
-      <label>Classificação
-        <select name="classification">
-          {% for c in ["PUBLICO","RESTRITO","CONFIDENCIAL"] %}
-          <option value="{{ c }}" {% if page.classification==c %}selected{% endif %}>{{ c }}</option>
+
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+
+<style>
+  /* elimina qualquer rolagem horizontal */
+  html, body { overflow-x: hidden; }
+
+  /* container ocupa toda a largura, com respiro nas bordas */
+  .container-wide{
+    width:100%;
+    max-width:100%;
+    margin:0;
+    padding: 0 24px;
+  }
+
+  /* grid: sidebar (280–360px) + editor 1fr */
+  .editor-shell{
+    display:grid;
+    grid-template-columns: clamp(280px, 20vw, 360px) minmax(0,1fr);
+    gap:18px;
+    align-items:start;
+  }
+  .editor-shell.sidebar-collapsed{ grid-template-columns: 1fr; }
+
+  /* cartões (sem glow) */
+  .card{
+    background:#171717;
+    border:1px solid #2a2a2a;
+    border-radius:14px;
+    padding:16px;
+    box-shadow:none !important;              /* remove glow */
+  }
+  .card:hover, .card:focus-within{
+    box-shadow:none !important;              /* sem glow no hover/focus */
+    border-color:#2a2a2a;
+  }
+  .card h2{ margin:0 0 12px 0; font-size:1.05rem; font-weight:700; }
+
+  /* sidebar */
+  .sidebar{}
+  .editor-shell.sidebar-collapsed .sidebar{ display:none; }
+
+  /* botão vertical para reabrir a lateral quando recolhida */
+  .reopen-side{
+    position:fixed; left:8px; top:160px; z-index:60;
+    writing-mode:vertical-rl; transform:rotate(180deg);
+    background:#2a2a2a; color:#e6e6e6; border:1px solid #3a3a3a;
+    border-radius:10px; padding:10px 8px; cursor:pointer;
+    display:none;
+  }
+  .editor-shell.sidebar-collapsed + .reopen-side{ display:block; }
+
+  /* campos */
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .field label{ font-size:.92rem; color:#cfcfcf; }
+  .field input[type="text"], .field select, .field textarea{
+    background:#0f0f0f; color:#e6e6e6; border:1px solid #2a2a2a;
+    border-radius:10px; padding:10px; outline:none;
+  }
+  .field textarea{ min-height:90px; resize:vertical; }
+  .thumb{
+    width:100%; aspect-ratio:16/10; object-fit:cover;
+    border-radius:12px; border:1px solid #2a2a2a; margin-top:10px;
+  }
+  .help{ color:#a9a9a9; font-size:.85rem; }
+
+  /* ações */
+  .actions{ display:flex; gap:10px; margin-top:12px; }
+  .btn{ background:#1b4bff; color:#fff; border:none; border-radius:10px; padding:10px 16px; font-weight:600; cursor:pointer; }
+  .btn.secondary{ background:#2a2a2a; color:#e6e6e6; }
+  .btn.danger{ background:#8e1b1b; }
+
+  /* editor ocupa 100% do 1fr e não é centralizado pelo tema */
+  .editor-card{
+    padding:0;
+    max-width:none !important;
+    width:100% !important;
+    margin:0 !important;
+  }
+  .editor-head{ padding:12px 16px; border-bottom:1px solid #2a2a2a; }
+  .editor-body{ padding:12px; }
+  .toastui-editor-defaultUI{ border-radius:14px; overflow:hidden; width:100% !important; }
+  .editor-body > #editor{ width:100% !important; }
+
+  @media (max-width: 1100px){
+    .container-wide{ padding: 0 16px; }
+    .editor-shell{ grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="container-wide">
+  <h1 style="margin:4px 0 16px;">Edição de Página</h1>
+
+  <!-- FORM PRINCIPAL (único) -->
+  <form id="edit-form" class="editor-shell" method="post" enctype="multipart/form-data"
+        action="{{ url_for('pages.edit_page', namespace=page.namespace, slug=page.slug) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <textarea name="content" id="content-field" hidden></textarea>
+
+    <!-- Lateral: Metadados -->
+    <aside class="card sidebar">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <h2 style="margin:0;">Metadados</h2>
+        <button id="toggle-side" type="button" class="btn secondary" title="Ocultar lateral">Ocultar</button>
+      </div>
+
+      <div class="field">
+        <label for="title">Título</label>
+        <input id="title" name="title" type="text" value="{{ page.title or '' }}" required>
+      </div>
+
+      <div class="field">
+        <label for="classification">Classificação</label>
+        <select id="classification" name="classification">
+          {% set opts=["PUBLICO","RESTRITO","CONFIDENCIAL"] %}
+          {% for c in opts %}
+            <option value="{{ c }}" {% if page.classification==c %}selected{% endif %}>{{ c }}</option>
           {% endfor %}
         </select>
-      </label>
-      <label>Resumo do card
-        <textarea name="summary" rows="4">{{ page.summary or '' }}</textarea>
-        <small class="muted">Texto de até 220 caracteres. Aparece nos cards da listagem.</small>
-      </label>
-      <div class="cover-uploader">
-        <label><strong>Imagem do card (capa)</strong></label>
-        <input type="file" id="cover-file" accept="image/*">
-        <small class="muted">Será redimensionada e comprimida automaticamente (WebP).</small>
-        <div id="cover-preview" style="margin-top:10px;{% if not page.image_url %}display:none{% endif %}">
-          <img src="{{ page.image_url or '' }}" alt="Prévia" style="max-width:100%;border-radius:10px;border:1px solid var(--border)">
-        </div>
-        <input type="hidden" name="image_url" value="{{ page.image_url or '' }}">
+      </div>
+
+      <div class="field">
+        <label for="summary">Resumo do card</label>
+        <textarea id="summary" name="summary" maxlength="220"
+                  placeholder="Até 220 caracteres. Aparece nos cards da listagem.">{{ page.summary or '' }}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="image">Imagem do card (capa)</label>
+        <input id="image" name="image" type="file" accept="image/*">
+        {% if page.image_url %}
+          <img class="thumb" src="{{ page.image_url }}" alt="Capa">
+        {% else %}
+          <img class="thumb" src="{{ url_for('static', filename='img/wikoruja_logo.png') }}" alt="Prévia">
+        {% endif %}
+        <div class="help">Será redimensionada e comprimida automaticamente (WebP).</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">Salvar</button>
+        <a class="btn secondary" href="{{ url_for('pages.view_page', namespace=page.namespace, slug=page.slug) }}">Cancelar</a>
       </div>
     </aside>
-    <section>
-      <div id="tui-editor"></div>
-      <input type="hidden" id="content-field" name="content" value="{{ page.content }}">
-      <div class="actions" style="margin-top:14px; display:flex; gap:10px; align-items:center;">
-        <button class="btn" type="submit">Salvar</button>
-        <a class="btn" href="{{ url_for('pages.view_page', namespace=page.namespace, slug=page.slug) }}">Cancelar</a>
+
+    <!-- Principal: Editor -->
+    <section class="card editor-card">
+      <div class="editor-head">
+        <h2 style="margin:0;">Conteúdo</h2>
+      </div>
+      <div class="editor-body">
+        <div id="editor" style="min-height:300px;"></div>
       </div>
     </section>
-  </div>
-</form>
+  </form>
 
-{% if page.id %}
-  <div class="actions" style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+  <!-- Botão vertical para reabrir a lateral quando estiver oculta -->
+  <button id="reopen-side" class="reopen-side" type="button" title="Mostrar metadados">Metadados</button>
+
+  <!-- Excluir publicação (fora do form principal) -->
+  {% if page.id %}
+  <div style="display:flex; justify-content:flex-end; margin-top:12px;">
     <form method="post"
           action="{{ url_for('pages.delete_page', namespace=page.namespace, slug=page.slug) }}"
-          onsubmit="return confirm('Tem certeza que deseja excluir esta publicação? Esta ação é irreversível.');"
-          style="margin-left:auto">
+          onsubmit="return confirm('Tem certeza que deseja excluir esta publicação? Esta ação é irreversível.');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn danger" type="submit">Excluir publicação</button>
     </form>
   </div>
-{% endif %}
+  {% endif %}
+</div>
+
+<script>
+  const initialMarkdown = {{ (page.content or '')|tojson }};
+
+  const editor = new toastui.Editor({
+    el: document.querySelector('#editor'),
+    height: '560px',                 // ajustado abaixo
+    initialEditType: 'wysiwyg',
+    previewStyle: 'tab',
+    initialValue: initialMarkdown,
+    usageStatistics: false,
+    toolbarItems: [
+      ['heading','bold','italic','strike'],
+      ['hr','quote'],
+      ['ul','ol','task'],
+      ['table','link'],
+      ['image','code','codeblock']
+    ]
+  });
+
+  /* altura do editor baseada no viewport e na posição real do editor */
+  function computeEditorHeight(){
+    const el = document.getElementById('editor');
+    const rect = el.getBoundingClientRect();
+    const bottomPadding = 32;
+    const h = Math.max(420, window.innerHeight - rect.top - bottomPadding);
+    editor.setHeight(h + 'px');
+  }
+  window.addEventListener('resize', computeEditorHeight);
+  setTimeout(computeEditorHeight, 0);
+
+  /* recolher/expandir a lateral (gaveta) */
+  const shell   = document.querySelector('.editor-shell');
+  const btnHide = document.getElementById('toggle-side');
+  const btnShow = document.getElementById('reopen-side');
+
+  btnHide.addEventListener('click', ()=>{
+    shell.classList.add('sidebar-collapsed');
+    computeEditorHeight();
+  });
+  btnShow.addEventListener('click', ()=>{
+    shell.classList.remove('sidebar-collapsed');
+    computeEditorHeight();
+  });
+
+  /* no submit, envia o markdown no campo hidden */
+  document.getElementById('edit-form').addEventListener('submit', function(){
+    document.getElementById('content-field').value = editor.getMarkdown();
+  });
+
+  /* Ctrl+S para salvar (atalho útil) */
+  function submitForm(){
+    document.getElementById('content-field').value = editor.getMarkdown();
+    document.getElementById('edit-form').submit();
+  }
+  window.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
+      e.preventDefault(); submitForm();
+    }
+  });
+</script>
+
+{% endblock %}

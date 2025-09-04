@@ -7,7 +7,7 @@ def _ensure_image_url_column(app):
         if 'sqlite' in str(eng.url.drivername):
             with eng.connect() as con:
                 cols = []
-                for row in con.execute("PRAGMA table_info(page)"):
+                for row in con.exec_driver_sql("PRAGMA table_info(page)"):
                     try:
                         cols.append(row['name'])
                     except Exception:
@@ -16,7 +16,7 @@ def _ensure_image_url_column(app):
                         except Exception:
                             pass
                 if 'image_url' not in cols:
-                    con.execute("ALTER TABLE page ADD COLUMN image_url TEXT")
+                    con.exec_driver_sql("ALTER TABLE page ADD COLUMN image_url TEXT")
                     try:
                         app.logger.info("Added image_url column to page table.")
                     except Exception:
@@ -38,12 +38,14 @@ from werkzeug.security import generate_password_hash
 
 def create_app():
     app = Flask(__name__)
+    # garantir pasta instance para o SQLite
+    os.makedirs(app.instance_path, exist_ok=True)
     app.config.update(
         SECRET_KEY="dev-secret-key-change-me",              # TROCAR EM PRODUÇÃO
-        SQLALCHEMY_DATABASE_URI="sqlite:///wikoruja.db",
+        SQLALCHEMY_DATABASE_URI="sqlite:///" + os.path.join(app.instance_path, "wikoruja.db"),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         WTF_CSRF_ENABLED=True,
-        MAX_CONTENT_LENGTH=32 * 1024 * 1024,                # 32 MB por upload
+        MAX_CONTENT_LENGTH=64 * 1024 * 1024,                # 32 MB por upload
     )
 
     # Raiz para uploads (pasta 'uploads' dentro do projeto)
@@ -113,9 +115,3 @@ def create_app():
     return app
 
 app = create_app()
-
-# -- limite de tamanho (POST/UPLOAD) para aceitar imagens base64 grandes --
-try:
-    app.config['MAX_CONTENT_LENGTH'] = 134217728*1024*1024  # 64 MB
-except Exception:
-    pass
